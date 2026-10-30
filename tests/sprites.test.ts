@@ -9,7 +9,10 @@ import type { Sprite } from '../src/sprites.js';
 
 const allSprites = Object.entries(Sprites);
 
-/** Paints the runs onto a blank grid and returns it as bitmap rows. */
+/** Returns true if the character is a pixel (not empty). */
+const isPixel = (ch: string | undefined): boolean => ch !== undefined && ch !== '.';
+
+/** Paints the runs onto a blank grid and returns it as bitmap rows. For multi-color sprites, uses the source bitmap. */
 function paintRuns(sprite: Sprite): string[] {
   const grid = Array.from({ length: sprite.height }, () =>
     Array.from({ length: sprite.width }, () => '.'),
@@ -18,12 +21,15 @@ function paintRuns(sprite: Sprite): string[] {
     const row = grid[run.y];
     if (row === undefined)
       throw new Error(`run outside sprite at y ${String(run.y)}`);
+    const sourceRow = sprite.bitmap[run.y];
+    if (sourceRow === undefined)
+      throw new Error(`source row missing at y ${String(run.y)}`);
     for (let x = run.x; x < run.x + run.width; x += 1) {
       if (x >= sprite.width)
         throw new Error(`run outside sprite at x ${String(x)}`);
-      if (row[x] === '#')
+      if (row[x] !== '.')
         throw new Error(`runs overlap at ${String(x)},${String(run.y)}`);
-      row[x] = '#';
+      row[x] = sourceRow[x] ?? '.';
     }
   }
   return grid.map((row) => row.join(''));
@@ -146,18 +152,20 @@ describe('sprites', () => {
     (_name, cactus) => {
       const { hitbox } = cactus;
       // The trunk reaches the bottom row, so the cactus sits on the ground.
-      expect(cactus.bitmap[cactus.height - 1]).toContain('#');
+      const bottomRow = cactus.bitmap[cactus.height - 1];
+      expect(bottomRow).toBeDefined();
+      expect([...bottomRow!].some((ch) => isPixel(ch))).toBe(true);
       expect(hitbox.y + hitbox.height).toBe(cactus.height);
       // Each arm reaches the outer column; those tip pixels lie outside the hitbox.
       const column = (x: number): boolean =>
-        cactus.bitmap.some((row) => row[x] === '#');
+        cactus.bitmap.some((row) => isPixel(row[x]));
       expect(column(0)).toBe(true);
       expect(column(cactus.width - 1)).toBe(true);
       expect(hitbox.x).toBeGreaterThan(0);
       expect(hitbox.x + hitbox.width).toBeLessThan(cactus.width);
       // The whole trunk (the full-height columns) is inside the hitbox.
       const trunk = [...Array(cactus.width).keys()].filter((x) =>
-        cactus.bitmap.slice(1).every((row) => row[x] === '#'),
+        cactus.bitmap.slice(1).every((row) => isPixel(row[x])),
       );
       expect(trunk.length).toBeGreaterThan(0);
       for (const x of trunk) {
