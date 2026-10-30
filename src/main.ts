@@ -98,13 +98,15 @@ installPuddle({ game, renderer });
 // count as already pressed in the next run. The previous adapter's listeners
 // are removed before the new one attaches, so listeners do not accumulate
 // across restarts.
-let disposeKeyboard: () => void = () => {};
+let disposeKeyboard: () => void = () => {
+  // No-op before first bind.
+};
 function bindKeyboard(): void {
   disposeKeyboard();
   const handle = attachKeyboard(window, createKeyboard(), (intent) => {
     game.dispatch(intent);
   });
-  disposeKeyboard = handle.dispose;
+  disposeKeyboard = () => handle.dispose();
 }
 bindKeyboard();
 game.on('restart', bindKeyboard);

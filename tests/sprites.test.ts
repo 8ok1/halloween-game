@@ -190,22 +190,23 @@ describe('computeRuns', () => {
 
 describe('makeSprite', () => {
   const box = { x: 0, y: 0, width: 1, height: 1 };
+  const palette = { '#': '#535353' };
 
   it('rejects rows of unequal length', () => {
-    expect(() => makeSprite(['##', '#'], box)).toThrow(/row 1/);
+    expect(() => makeSprite(['##', '#'], box, palette)).toThrow(/row 1/);
   });
 
   it('rejects an empty bitmap', () => {
-    expect(() => makeSprite([], box)).toThrow();
+    expect(() => makeSprite([], box, palette)).toThrow();
   });
 
   it('rejects characters other than # and .', () => {
-    expect(() => makeSprite(['# '], box)).toThrow(/row 0/);
+    expect(() => makeSprite(['# '], box, palette)).toThrow(/row 0/);
   });
 
   it('rejects a hitbox outside the bitmap', () => {
     expect(() =>
-      makeSprite(['##'], { x: 1, y: 0, width: 2, height: 1 }),
+      makeSprite(['##'], { x: 1, y: 0, width: 2, height: 1 }, palette),
     ).toThrow(/hitbox/);
   });
 });

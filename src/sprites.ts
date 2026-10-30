@@ -4,6 +4,7 @@
 // module load. Later slices add sprites to `Sprites` through `makeSprite`.
 
 import { assertNever } from './assert.js';
+import { PALETTE } from './tuning.js';
 import type { ObstacleKind, Rect } from './types.js';
 
 export interface Sprite {
@@ -14,6 +15,8 @@ export interface Sprite {
   readonly hitbox: Rect;
   /** Horizontal runs of '#' per row, relative to the sprite's top-left corner, each 1 px high. */
   readonly runs: readonly Rect[];
+  /** Character-to-color mapping for multi-color sprites. */
+  readonly palette: Readonly<Record<string, string>>;
 }
 
 const PIXEL = '#';
@@ -38,10 +41,14 @@ export function computeRuns(bitmap: readonly string[]): readonly Rect[] {
 }
 
 /**
- * Builds a sprite from its bitmap and hitbox. Throws on a malformed bitmap
+ * Builds a sprite from its bitmap, hitbox, and palette. Throws on a malformed bitmap
  * (empty, ragged rows, characters other than '#' and '.') or a hitbox outside it.
  */
-export function makeSprite(bitmap: readonly string[], hitbox: Rect): Sprite {
+export function makeSprite(
+  bitmap: readonly string[],
+  hitbox: Rect,
+  palette: Readonly<Record<string, string>>,
+): Sprite {
   const width = bitmap[0]?.length ?? 0;
   const height = bitmap.length;
   if (width === 0) {
@@ -79,6 +86,7 @@ export function makeSprite(bitmap: readonly string[], hitbox: Rect): Sprite {
     height,
     hitbox: Object.freeze({ ...hitbox }),
     runs: Object.freeze(computeRuns(bitmap)),
+    palette: Object.freeze({ ...palette }),
   };
 }
 
@@ -297,14 +305,22 @@ const GROUND = [
 ] as const;
 
 export const Sprites = Object.freeze({
-  dinoStand: makeSprite(DINO_STAND, DINO_HITBOX),
-  dinoRun0: makeSprite(DINO_RUN_0, DINO_HITBOX),
-  dinoRun1: makeSprite(DINO_RUN_1, DINO_HITBOX),
-  dinoHit: makeSprite(DINO_HIT, DINO_HITBOX),
-  cactusSmall: makeSprite(CACTUS_SMALL, CACTUS_SMALL_HITBOX),
-  cactusLarge: makeSprite(CACTUS_LARGE, CACTUS_LARGE_HITBOX),
+  dinoStand: makeSprite(DINO_STAND, DINO_HITBOX, { '#': PALETTE.fg }),
+  dinoRun0: makeSprite(DINO_RUN_0, DINO_HITBOX, { '#': PALETTE.fg }),
+  dinoRun1: makeSprite(DINO_RUN_1, DINO_HITBOX, { '#': PALETTE.fg }),
+  dinoHit: makeSprite(DINO_HIT, DINO_HITBOX, { '#': PALETTE.fg }),
+  cactusSmall: makeSprite(CACTUS_SMALL, CACTUS_SMALL_HITBOX, {
+    '#': PALETTE.fg,
+  }),
+  cactusLarge: makeSprite(CACTUS_LARGE, CACTUS_LARGE_HITBOX, {
+    '#': PALETTE.fg,
+  }),
   // Decorative; nothing collides with the ground.
-  ground: makeSprite(GROUND, { x: 0, y: 0, width: 64, height: 4 }),
+  ground: makeSprite(
+    GROUND,
+    { x: 0, y: 0, width: 64, height: 4 },
+    { '#': PALETTE.fg },
+  ),
 });
 
 /**

@@ -77,10 +77,14 @@ export interface Renderer {
 const NO_CAMERA: CameraFn = () => ({ x: 0, y: 0 });
 
 /**
- * Fills a sprite's pixel runs with `PALETTE.fg`, its top-left corner at (x, y)
- * snapped to whole logical pixels. State keeps exact float positions; only the
- * drawing is snapped, so no run lands between pixels and gets anti-aliased
- * grey edges (functional spec 2.9: one dark grey on one near-white).
+ * Fills a sprite's pixels with colours from its palette, its top-left corner
+ * at (x, y) snapped to whole logical pixels. State keeps exact float positions;
+ * only the drawing is snapped, so no run lands between pixels and gets
+ * anti-aliased grey edges (functional spec 2.9: one dark grey on one near-white).
+ *
+ * Fast path: `#` runs are painted from the precomputed `runs` array.
+ * Slow path: other palette characters (for multi-colour sprites) are scanned
+ * pixel-by-pixel from the bitmap. Single-colour sprites skip the slow path.
  */
 export function drawSprite(
   ctx: DrawContext,
@@ -90,9 +94,35 @@ export function drawSprite(
 ): void {
   const originX = Math.round(x);
   const originY = Math.round(y);
-  ctx.fillStyle = PALETTE.fg;
-  for (const run of sprite.runs) {
-    ctx.fillRect(originX + run.x, originY + run.y, run.width, run.height);
+
+  // Fast path: paint all '#' runs with the palette colour for '#'.
+  const hashColor = sprite.palette['#'];
+  if (hashColor !== undefined) {
+    ctx.fillStyle = hashColor;
+    for (const run of sprite.runs) {
+      ctx.fillRect(originX + run.x, originY + run.y, run.width, run.height);
+    }
+  }
+
+  // Slow path: for multi-colour sprites, scan bitmap for other characters.
+  const otherChars = Object.keys(sprite.palette).filter((ch) => ch !== '#');
+  if (otherChars.length > 0) {
+    for (const char of otherChars) {
+      const color = sprite.palette[char];
+      if (color === undefined) {
+        continue;
+      }
+      ctx.fillStyle = color;
+
+      // Scan the bitmap for this character and paint each pixel individually.
+      sprite.bitmap.forEach((row, rowY) => {
+        for (let colX = 0; colX < row.length; colX += 1) {
+          if (row[colX] === char) {
+            ctx.fillRect(originX + colX, originY + rowY, 1, 1);
+          }
+        }
+      });
+    }
   }
 }
 

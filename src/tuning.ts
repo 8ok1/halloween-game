@@ -19,6 +19,9 @@ export const PALETTE = {
   bg: '#f7f7f7',
   fg: '#535353',
   accent: '#c4302b',
+  pumpkin: '#d87f27',
+  pumpkinShadow: '#8a4a16',
+  stem: '#3d6b2e',
 } as const;
 
 /**
